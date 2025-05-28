@@ -1,60 +1,152 @@
 package dungeon.engine;
 
-import javafx.scene.text.Text;
+import java.util.Scanner;
+import java.util.Random;
 
 public class GameEngine {
 
-    /**
-     * An example board to store the current game state.
-     *
-     * Note: depending on your game, you might want to change this from 'int' to String or something?
-     */
-    private Cell[][] map;
+    private GameState state;
+    private static final int MAP_SIZE = 10;
+    private static final int MAX_STEPS = 100;
 
-    /**
-     * Creates a square game board.
-     *
-     * @param size the width and height.
-     */
-    public GameEngine(int size) {
-        map = new Cell[size][size];
+    // Add this method to get the map size
+    public int getSize() {
+        return state.getMap().length;
+    }
 
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
+    public Cell[][] getGuiMap() {
+        Entity[][] logicalMap = state.getMap();
+        Cell[][] guiMap = new Cell[getSize()][getSize()];
+        Player player = state.getPlayer();
+
+        for (int i = 0; i < getSize(); i++) {
+            for (int j = 0; j < getSize(); j++) {
                 Cell cell = new Cell();
-                Text text = new Text(i + "," + j);
-                cell.getChildren().add(text);
-                map[i][j] = cell;
+
+                if (i == player.getX() && j == player.getY()) {
+                    cell.setPlayerSymbol();
+                } else {
+                    cell.setEntity(logicalMap[i][j]);
+                }
+
+                guiMap[i][j] = cell;
             }
         }
 
-        map[0][0].setStyle("-fx-background-color: #7baaa4");
-        map[size-1][size-1].setStyle("-fx-background-color: #7baaa4");
+        return guiMap;
     }
 
-    /**
-     * The size of the current game.
-     *
-     * @return this is both the width and the height.
-     */
-    public int getSize() {
-        return map.length;
+
+    public boolean movePlayer(int dx, int dy) {
+        int newX = state.getPlayerX() + dx;
+        int newY = state.getPlayerY() + dy;
+
+        if (newX >= 0 && newX < MAP_SIZE && newY >= 0 && newY < MAP_SIZE) {
+            state.movePlayer(Direction.fromDelta(dx, dy));
+            return true;
+        }
+        return false;
     }
 
-    /**
-     * The map of the current game.
-     *
-     * @return the map, which is a 2d array.
-     */
-    public Cell[][] getMap() {
-        return map;
+
+    public GameEngine(int difficulty) {
+        this.state = new GameState(MAP_SIZE, difficulty);
+        generateLevel();
     }
 
-    /**
-     * Plays a text-based game
-     */
+    public Player getPlayer() {
+        return state.getPlayer();
+    }
+
+
+    private void generateLevel() {
+        Entity[][] map = state.getMap();
+        Player player = new Player(0, 0);
+        state.setPlayer(player);
+        state.setSteps(0);
+
+        // Clear map
+        for (int i = 0; i < MAP_SIZE; i++) {
+            for (int j = 0; j < MAP_SIZE; j++) {
+                map[i][j] = null;
+            }
+        }
+
+        // Place Entry
+        map[MAP_SIZE - 1][0] = new Entry();
+        state.setPlayerPosition(MAP_SIZE - 1, 0);
+
+        // Place Player
+        player.setPosition(MAP_SIZE - 1, 0);
+
+        // Place random entities
+        placeRandomItems(map, new Gold(), 5);
+        placeRandomItems(map, new Trap(), 5);
+        placeRandomItems(map, new MeleeMutant(), 3);
+        placeRandomItems(map, new RangedMutant(), 3);
+        placeRandomItems(map, new HealthPotion(), 2);
+        placeRandomItems(map, new Ladder(), 1);
+    }
+
+    private void placeRandomItems(Entity[][] map, Entity entity, int count) {
+        Random rand = new Random();
+        int placed = 0;
+        while (placed < count) {
+            int x = rand.nextInt(MAP_SIZE);
+            int y = rand.nextInt(MAP_SIZE);
+            if (map[x][y] == null) {
+                map[x][y] = entity;
+                placed++;
+            }
+        }
+    }
+
+    public void playTextGame() {
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Welcome to MiniDungeon!");
+
+        while (!state.isGameOver()) {
+            state.printMap();
+            System.out.printf("HP: %d | Score: %d | Steps: %d/%d\n", state.getPlayer().getHp(), state.getPlayer().getScore(), state.getSteps(), MAX_STEPS);
+            System.out.print("Move (u/d/l/r): ");
+            String move = scanner.nextLine().trim().toLowerCase();
+            Direction dir = switch (move) {
+                case "u" -> Direction.UP;
+                case "d" -> Direction.DOWN;
+                case "l" -> Direction.LEFT;
+                case "r" -> Direction.RIGHT;
+                default -> null;
+            };
+
+            if (dir != null) {
+                state.movePlayer(dir);
+            } else {
+                System.out.println("Invalid input. Use u/d/l/r.");
+            }
+
+            if (state.getSteps() >= MAX_STEPS || !state.getPlayer().isAlive()) {
+                System.out.println("Game Over. You lost.");
+                state.getPlayer().adjustScore(-1);
+                break;
+            }
+
+            if (state.hasReachedLadder()) {
+                if (state.getLevel() == 2) {
+                    System.out.println("You escaped the dungeon!");
+                    break;
+                } else {
+                    System.out.println("Advancing to Level 2!");
+                    state.advanceLevel();
+                    generateLevel();
+                }
+            }
+        }
+
+        System.out.println("Final Score: " + state.getPlayer().getScore());
+    }
+
     public static void main(String[] args) {
-        GameEngine engine = new GameEngine(10);
-        System.out.printf("The size of map is %d * %d\n", engine.getSize(), engine.getSize());
+        GameEngine engine = new GameEngine(3);
+        engine.playTextGame();
     }
 }
