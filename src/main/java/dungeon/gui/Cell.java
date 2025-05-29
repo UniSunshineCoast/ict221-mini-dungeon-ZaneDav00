@@ -1,5 +1,6 @@
-package dungeon.engine;
+package dungeon.gui;
 
+import dungeon.engine.Entity;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;

@@ -1,7 +1,7 @@
 plugins {
     id 'java'
     id 'application'
-    id 'org.openjfx.javafxplugin' version '0.1.0'
+    id 'org.openjfx.javafxplugin' version '0.1.0' // This version should be fine
 }
 
 group = 'ict221'
@@ -16,18 +16,22 @@ ext {
 }
 
 java {
-    sourceCompatibility = '21'
+    sourceCompatibility = '21' // Make sure your project's JDK is set to Java 21
     targetCompatibility = '21'
 }
 
 application {
-    mainModule = 'dungeon.gui'
-    mainClass = 'dungeon.gui.RunGUI'
+    // If you DO NOT have a module-info.java file, REMOVE or COMMENT OUT the mainModule line.
+    // mainModule = 'dungeon.gui' // For a non-modular project, this line should be removed.
+
+    // Ensure this points to the class with your main(String[] args) method for starting the GUI
+    mainClass = 'dungeon.gui.RunGame'
 }
 
 javafx {
-    version = '21.0.6'
-    modules = ['javafx.controls', 'javafx.fxml']
+    version = '21.0.6' // Use a JavaFX version compatible with Java 21. Check for latest patch.
+    // E.g., if 21.0.7 is out, use that.
+    modules = ['javafx.controls', 'javafx.fxml', 'javafx.graphics'] // Added javafx.graphics
 }
 
 dependencies {
@@ -43,12 +47,17 @@ testing {
     }
 }
 
+// This sourceSets block is generally okay.
+// It means Gradle will look for resources (like .fxml files) in both:
+// - src/main/java (and exclude .java files from being treated as resources)
+// - src/main/resources
+// Standard practice is to keep FXML files and other resources primarily in src/main/resources,
+// e.g., src/main/resources/dungeon/gui/your_fxml_file.fxml
 sourceSets.main {
     java {
         srcDir 'src/main/java'
     }
     resources {
-        // we also look for resources (like *.fxml) in src/main/java
         srcDirs = ['src/main/java', 'src/main/resources']
         exclude "**/*.java"
     }
