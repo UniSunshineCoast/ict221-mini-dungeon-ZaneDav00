@@ -1,4 +1,3 @@
-// Updated GameState class using Option 2 (Player not stored in Entity map)
 package dungeon.engine;
 
 public class GameState {
@@ -56,19 +55,27 @@ public class GameState {
         steps = 0;
     }
 
+    private boolean ladderReached = false;
+
     public void movePlayer(Direction dir) {
         int newX = playerX + dir.dx;
         int newY = playerY + dir.dy;
 
         if (newX >= 0 && newX < map.length && newY >= 0 && newY < map.length) {
             Entity entity = map[newX][newY];
-
             if (entity == null || entity.isPassable()) {
                 String message = (entity != null) ? entity.interact(player) : null;
-                if (entity != null) map[newX][newY] = null; // remove entity after interaction
-                if (message != null) System.out.println(message);
+                if (entity != null && !(entity instanceof Ladder)) {
+                    map[newX][newY] = null;
+                }
                 setPlayerPosition(newX, newY);
                 steps++;
+
+                if (entity instanceof Ladder) {
+                    ladderReached = true;
+                }
+
+                if (message != null) System.out.println(message);
             } else {
                 System.out.println("You can't move there.");
             }
@@ -78,9 +85,9 @@ public class GameState {
     }
 
     public boolean hasReachedLadder() {
-        Entity current = map[playerX][playerY];
-        return current instanceof Ladder;
+        return ladderReached;
     }
+
 
     public boolean isGameOver() {
         return !player.isAlive();

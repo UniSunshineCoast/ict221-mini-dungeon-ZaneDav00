@@ -9,6 +9,8 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
 import javafx.util.Duration;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 
 public class Controller {
     @FXML
@@ -23,6 +25,7 @@ public class Controller {
     @FXML
     private Label timeLabel;
 
+    private long startTime;
     private GameEngine engine;
     private int elapsedTime = 0; // in seconds
     private Timeline timeline;
@@ -31,9 +34,21 @@ public class Controller {
     public void initialize() {
         engine = new GameEngine(3); // difficulty level
 
+        startTime = System.currentTimeMillis(); // Add this line
         startTimer();
         updateGui();
-        updateStatus();
+
+    }
+
+
+    private void showGameOver() {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION, "Game Over! You have died.", ButtonType.OK);
+        alert.setHeaderText(null);
+        alert.setTitle("Game Over");
+        alert.showAndWait();
+
+        // Disable all controls after game over
+        gridPane.setDisable(true);
     }
 
     private void startTimer() {
@@ -55,23 +70,41 @@ public class Controller {
             }
         }
 
+        Player player = engine.getPlayer();
+        healthLabel.setText("HP: " + player.getHp());
+        scoreLabel.setText("Score: " + player.getScore());
+        stepsLabel.setText("Steps: " + player.getSteps());
+        timeLabel.setText("Time: " + elapsedTime + "s");
+        stepsLabel.setText("Steps: " + engine.getSteps());
+
         gridPane.setGridLinesVisible(true);
     }
 
-    private void updateStatus() {
-        Player player = engine.getPlayer();
-        healthLabel.setText("Health: " + player.getHp());
-        scoreLabel.setText("Score: " + player.getScore());
-        stepsLabel.setText("Steps: " + player.getSteps());
-        // timeLabel updated by timer
+    private void showGameWon() {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION, "You reached the ladder and escaped the dungeon! You win!", ButtonType.OK);
+        alert.setHeaderText(null);
+        alert.setTitle("Victory");
+        alert.showAndWait();
+
+        stopTimer(); // Optional
+        gridPane.setDisable(true);
     }
+
 
     private void tryMove(int dx, int dy) {
         if (engine.movePlayer(dx, dy)) {
             updateGui();
-            updateStatus();
+
+            if (engine.isGameOver()) {
+                showGameOver();
+            } if (engine.hasReachedLadder()) {
+                showGameWon();  // 👈 Create this method next
+            }
         }
     }
+
+
+
 
     @FXML
     private void moveUp() {

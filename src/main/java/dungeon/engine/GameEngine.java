@@ -42,10 +42,29 @@ public class GameEngine {
         int newY = state.getPlayerY() + dy;
 
         if (newX >= 0 && newX < MAP_SIZE && newY >= 0 && newY < MAP_SIZE) {
+            Entity[][] map = state.getMap();
+            Entity entity = map[newX][newY];
+
             state.movePlayer(Direction.fromDelta(dx, dy));
+
+            if (entity != null && !(entity instanceof Ladder)) {
+                map[newX][newY] = null;
+            }
+
+            System.out.println("Player moved to: (" + newX + ", " + newY + "), entity: " + map[newX][newY]);
+
+            if (entity instanceof Ladder) {
+                System.out.println("You climbed the ladder!");
+                // You could set a game-over flag here or in state
+            }
+
             return true;
         }
         return false;
+    }
+
+    public boolean hasReachedLadder() {
+        return state.hasReachedLadder();
     }
 
 
@@ -101,6 +120,17 @@ public class GameEngine {
         }
     }
 
+
+
+
+    public int getSteps() {
+        return state.getSteps();
+    }
+
+    public boolean isGameOver() {
+        return !state.getPlayer().isAlive();
+    }
+
     public void playTextGame() {
         Scanner scanner = new Scanner(System.in);
         System.out.println("Welcome to MiniDungeon!");
@@ -149,4 +179,6 @@ public class GameEngine {
         GameEngine engine = new GameEngine(3);
         engine.playTextGame();
     }
+
+
 }
