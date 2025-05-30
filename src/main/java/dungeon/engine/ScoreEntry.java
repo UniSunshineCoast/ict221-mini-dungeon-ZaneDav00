@@ -6,17 +6,19 @@
  */
 package dungeon.engine; // Or your chosen package for score-related classes
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 
 public class ScoreEntry implements Serializable, Comparable<ScoreEntry> {
+    @Serial
     private static final long serialVersionUID = 2024053001L; // Example serialVersionUID
 
-    private String playerName;
-    private int score;
-    private LocalDate date;
+    private final String playerName;
+    private final int score;
+    private final LocalDate date;
 
     /**
      * Constructs a new ScoreEntry.

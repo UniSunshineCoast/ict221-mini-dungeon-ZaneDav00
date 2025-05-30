@@ -39,6 +39,8 @@ import java.util.ResourceBundle;
 
 public class Controller implements Initializable {
 
+
+
     // --- FXML UI Elements ---
     @FXML private GridPane gridPane;
     @FXML private Label healthLabel;
