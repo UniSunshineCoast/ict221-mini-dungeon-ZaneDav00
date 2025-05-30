@@ -47,6 +47,7 @@ public class Controller implements Initializable {
     @FXML private Label timerLabel;
     @FXML private Label levelLabel;
     @FXML private Label difficultyLabel;
+    // Assuming this is still in your FXML
     @FXML private TextArea statusTextArea;
     @FXML private Button saveButton;
     @FXML private Button loadButton;
@@ -59,9 +60,7 @@ public class Controller implements Initializable {
     private static final String SAVE_FILENAME = "minidungeon.save";
 
     /**
-     * Initializes the controller class. This method is automatically called
-     * after the FXML file has been loaded. Sets up keyboard listeners
-     * and initial button states.
+     * Initializes the controller class.
      */
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -78,16 +77,14 @@ public class Controller implements Initializable {
 
         File saveFile = new File(SAVE_FILENAME);
         if (loadButton != null) loadButton.setDisable(!saveFile.exists());
-        if (saveButton != null) saveButton.setDisable(true); // Enabled once game starts
+        if (saveButton != null) saveButton.setDisable(true);
     }
 
     /**
-     * Sets the initial difficulty for the game and starts a new game.
-     * This method is typically called after the user selects a difficulty.
+     * Sets the initial difficulty and starts a new game.
      * @param difficulty The initial difficulty level.
      */
     public void setInitialDifficulty(int difficulty) {
-        // Default difficulty
         engine = new GameEngine(difficulty);
         engine.startNewGame();
 
@@ -102,9 +99,6 @@ public class Controller implements Initializable {
         if (loadButton != null) loadButton.setDisable(!new File(SAVE_FILENAME).exists());
     }
 
-    /**
-     * Resets and starts the game timer.
-     */
     private void resetAndStartTimer() {
         if (timeline != null) timeline.stop();
         elapsedTime = 0;
@@ -115,9 +109,6 @@ public class Controller implements Initializable {
         timeline.play();
     }
 
-    /**
-     * Updates the timer label in the GUI.
-     */
     private void updateTimerLabel() {
         if (timerLabel == null) return;
         int minutes = elapsedTime / 60;
@@ -127,17 +118,14 @@ public class Controller implements Initializable {
 
     /**
      * Refreshes the entire game GUI based on the current game engine state.
-     * Updates map, player stats, labels, and button states.
-     * Also handles logic for game over, win, and level advancement.
      */
     private void updateGui() {
         if (engine == null || engine.getState() == null) {
-            System.err.println("Controller.updateGui: Engine or game state not initialized.");
+            System.err.println("Controller.updateGui: Engine or game state not initialized."); // Kept for critical errors
             if (saveButton != null) saveButton.setDisable(true);
             return;
         }
 
-        // Refresh map display
         gridPane.getChildren().clear();
         Entity[][] entityMap = engine.getMapEntities();
         int playerX = engine.getPlayerX();
@@ -145,13 +133,13 @@ public class Controller implements Initializable {
         for (int r = 0; r < entityMap.length; r++) {
             for (int c = 0; c < entityMap[r].length; c++) {
                 Cell guiCell = new Cell();
-                if (r == playerX && c == playerY) guiCell.setPlayerSymbol();
-                else guiCell.setEntity(entityMap[r][c]);
+                boolean isPlayerCurrentlyOnCell = (r == playerX && c == playerY);
+                Entity currentEntityOnCell = entityMap[r][c];
+                guiCell.setVisual(currentEntityOnCell, isPlayerCurrentlyOnCell);
                 gridPane.add(guiCell, c, r);
             }
         }
 
-        // Refresh player stats and game info labels
         Player currentPlayer = engine.getPlayer();
         if (currentPlayer != null) {
             healthLabel.setText("HP: " + currentPlayer.getHp());
@@ -161,16 +149,13 @@ public class Controller implements Initializable {
         if (levelLabel != null) levelLabel.setText("Level: " + engine.getState().getLevel());
         if (difficultyLabel != null) difficultyLabel.setText("Difficulty: " + engine.getState().getDifficulty());
 
-        // Update button states based on game status
         boolean gameIsEffectivelyOver = engine.isGameOver() || engine.hasWonGame();
         if (saveButton != null) saveButton.setDisable(gameIsEffectivelyOver);
         if (gridPane != null) gridPane.setDisable(gameIsEffectivelyOver);
-        if (loadButton != null) { // Load button can be active even if game over, to load another game
+        if (loadButton != null) {
             loadButton.setDisable(!new File(SAVE_FILENAME).exists());
         }
 
-
-        // Handle game end conditions or level advancement
         if (engine.isGameOver()) {
             if (timeline != null) timeline.stop();
             int finalScore = -1;
@@ -180,25 +165,23 @@ public class Controller implements Initializable {
                 }
                 finalScore = currentPlayer.getScore();
             }
-            scoreLabel.setText("Score: " + finalScore); // Ensure score display is updated
-            processEndOfGame(finalScore, false); // false: did not win
+            scoreLabel.setText("Score: " + finalScore);
+            processEndOfGame(finalScore, false);
         } else if (engine.hasWonGame()) {
             if (timeline != null) timeline.stop();
             int finalScore = (currentPlayer != null) ? currentPlayer.getScore() : 0;
-            scoreLabel.setText("Score: " + finalScore); // Ensure score display is updated
-            processEndOfGame(finalScore, true); // true: did win
+            scoreLabel.setText("Score: " + finalScore);
+            processEndOfGame(finalScore, true);
         } else if (engine.getState().hasReachedLadderThisTurn() && engine.getState().getLevel() == 1) {
             appendToStatus("You found the ladder!");
             if (engine.advanceToNextLevel()) {
-                // Message for advancing is added by GameEngine, will be picked up below
                 resetAndStartTimer();
-                updateGui(); // Recursive call to refresh for new level
+                updateGui();
             } else {
                 appendToStatus("Error advancing level.");
             }
         }
 
-        // Fetch and display any general messages from GameState
         List<String> generalMessages = engine.getState().getAndClearTurnMessages();
         for (String msg : generalMessages) {
             appendToStatus(msg);
@@ -206,9 +189,7 @@ public class Controller implements Initializable {
     }
 
     /**
-     * Processes the end of a game, checking for top scores and showing appropriate alerts.
-     * @param finalScore The player's final score for the game.
-     * @param wonGame True if the player won, false otherwise.
+     * Processes end of game: checks top score, shows alerts.
      */
     private void processEndOfGame(int finalScore, boolean wonGame) {
         if (finalScore != -1 && engine.isTopScore(finalScore)) {
@@ -236,19 +217,17 @@ public class Controller implements Initializable {
     }
 
     /**
-     * Appends a message to the status text area in the GUI and prints to console.
-     * @param message The message to display.
+     * Appends messages to the GUI status area and console.
      */
     private void appendToStatus(String message) {
         if (statusTextArea != null) {
             statusTextArea.appendText(message + "\n");
         }
-        System.out.println("GUI_STATUS: " + message); // Console fallback/log
+        System.out.println("GUI_STATUS: " + message); // Keep as a fallback log
     }
 
     /**
-     * Processes a player's move action.
-     * @param direction The direction of the move.
+     * Processes player movement.
      */
     private void processMove(Direction direction) {
         if (engine == null || engine.isGameOver() || engine.hasWonGame()) {
@@ -258,18 +237,17 @@ public class Controller implements Initializable {
         for (String msg : messagesFromMove) {
             appendToStatus(msg);
         }
-        updateGui(); // Refresh map, stats, and check game state
+        updateGui();
         gridPane.requestFocus();
     }
 
     // --- FXML Action Handlers ---
 
     /**
-     * Displays the help dialog with game instructions.
-     * Triggered by the Help button.
+     * Shows the help dialog.
      */
     @FXML
-    private void showHelpDialog() {
+    private void showHelpDialog() { // Kept ActionEvent for FXML convention
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("MiniDungeon - Help");
         alert.setHeaderText("Game Instructions & Rules");
@@ -317,7 +295,6 @@ public class Controller implements Initializable {
                 Game Features:
                 - Save Game: Saves your current progress (single save file).
                 - Load Game: Loads your previously saved game.
-                - Top Scores: View the hall of fame.
                 
                 Good luck exploring the MiniDungeon!""";
         alert.setContentText(helpText);
@@ -327,52 +304,44 @@ public class Controller implements Initializable {
     }
 
     /**
-     * Handles the Save Game button action.
-     * Saves the current game state if the game is active.
+     * Handles the Save Game action.
      */
     @FXML
-    private void handleSaveGame() {
+    private void handleSaveGame() { // Kept ActionEvent
         if (engine != null && !engine.isGameOver() && !engine.hasWonGame()) {
-            engine.saveGameState(); // Engine adds success/fail message to its state
+            engine.saveGameState();
         } else {
             appendToStatus("Cannot save: Game is over or not properly started.");
         }
-        // Fetch and display messages (e.g., "Game saved successfully")
         List<String> saveMessages = engine.getState().getAndClearTurnMessages();
         for (String msg : saveMessages) {
             appendToStatus(msg);
         }
-        updateGui(); // Refresh button states if needed (though save doesn't change game state itself)
+        // updateGui(); // Only call if save operation could change GUI state beyond messages
         gridPane.requestFocus();
     }
 
     /**
-     * Handles the Load Game button action.
-     * Loads a previously saved game state.
+     * Handles the Load Game action.
      */
     @FXML
-    private void handleLoadGame() {
-        if (engine == null) { // Should ideally not happen if button is managed correctly
+    private void handleLoadGame() { // Kept ActionEvent
+        if (engine == null) {
             appendToStatus("Cannot load: Game engine not ready.");
             return;
         }
-        boolean loaded = engine.loadGameState(); // Engine adds success/fail message to its state
+        boolean loaded = engine.loadGameState();
         if (loaded) {
-            resetAndStartTimer(); // Reset timer for the loaded game
-            // updateGui() will be called and will fetch the "Game loaded" message
+            resetAndStartTimer();
         }
-        // Whether loaded or not, updateGui will fetch any messages (like "Game loaded" or "Load failed")
-        // and refresh the display fully.
-        updateGui();
+        updateGui(); // Always update GUI after load attempt to show new state or error messages
         gridPane.requestFocus();
     }
 
     /**
-     * Displays an alert indicating the game is over.
-     *
+     * Shows the game over alert.
      */
     private void showGameOverAlert(boolean dueToHp, int finalScore) {
-        // System.out.println("DEBUG: showGameOverAlert - Method ENTERED. dueToHp: " + dueToHp + ", finalScore: " + finalScore);
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("Game Over");
         alert.setHeaderText(null);
@@ -381,41 +350,49 @@ public class Controller implements Initializable {
         } else {
             alert.setContentText("You have reached the maximum steps. Game Over!\nFinal Score: " + finalScore);
         }
-        // System.out.println("DEBUG: showGameOverAlert - Alert created. About to call showAndWait().");
         try {
             alert.showAndWait();
         } catch (Exception e) { e.printStackTrace(); }
-        // System.out.println("DEBUG: showGameOverAlert - showAndWait() finished.");
     }
 
     /**
-     * Displays an alert indicating the player has won the game.
-     * @param finalScore The player's final score.
+     * Shows the game win alert.
      */
     private void showWinAlert(int finalScore) {
-        // System.out.println("DEBUG: showWinAlert - Method ENTERED. Final Score: " + finalScore);
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("Congratulations!");
         alert.setHeaderText("You Won!");
         alert.setContentText("You've successfully escaped the dungeon from Level 2!\nFinal Score: " + finalScore);
-        // System.out.println("DEBUG: showWinAlert - Alert created. About to call showAndWait().");
         try {
             alert.showAndWait();
         } catch (Exception e) { e.printStackTrace(); }
-        // System.out.println("DEBUG: showWinAlert - showAndWait() finished.");
     }
 
     /**
-     * Displays the Top 5 scores in a dialog.
-     * Triggered by the Top Scores button.
+     * Shows the top scores dialog.
      */
     @FXML
-    private void showTopScoresDialog() {
+    private void showTopScoresDialog() { // Kept ActionEvent
         if (engine == null) {
             appendToStatus("Game engine not ready to show top scores.");
             return;
         }
-        StringBuilder sb = getStringBuilder();
+        List<ScoreEntry> scores = engine.getTopScores();
+        StringBuilder sb = new StringBuilder();
+        if (scores.isEmpty()) {
+            sb.append("No high scores recorded yet!");
+        } else {
+            sb.append(String.format("%-5s %-10s %-20s %s\n", "Rank", "Score", "Player", "Date"));
+            sb.append("-----------------------------------------------------------\n");
+            for (int i = 0; i < scores.size(); i++) {
+                ScoreEntry entry = scores.get(i);
+                sb.append(String.format("#%-4d %-10d %-20s %s\n",
+                        i + 1,
+                        entry.getScore(),
+                        entry.getPlayerName(),
+                        entry.getFormattedDate()));
+            }
+        }
 
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("Top 5 Scores");
@@ -442,26 +419,6 @@ public class Controller implements Initializable {
 
         alert.showAndWait();
         gridPane.requestFocus();
-    }
-
-    private StringBuilder getStringBuilder() {
-        List<ScoreEntry> scores = engine.getTopScores();
-        StringBuilder sb = new StringBuilder();
-        if (scores.isEmpty()) {
-            sb.append("No high scores recorded yet!");
-        } else {
-            sb.append(String.format("%-5s %-10s %-20s %s\n", "Rank", "Score", "Player", "Date"));
-            sb.append("-----------------------------------------------------------\n");
-            for (int i = 0; i < scores.size(); i++) {
-                ScoreEntry entry = scores.get(i);
-                sb.append(String.format("#%-4d %-10d %-20s %s\n",
-                        i + 1,
-                        entry.getScore(), // Ensure this is .getScore() and NOT .score()
-                        entry.getPlayerName(),
-                        entry.getFormattedDate()));
-            }
-        }
-        return sb;
     }
 
     // --- Player Movement Action Handlers ---

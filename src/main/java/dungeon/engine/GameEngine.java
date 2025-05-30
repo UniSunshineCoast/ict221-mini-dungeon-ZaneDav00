@@ -53,66 +53,110 @@ public class GameEngine {
         System.out.println("Game started. Level 1. Difficulty: " + this.state.getDifficulty());
     }
 
-    public boolean advanceToNextLevel() {
-        if (state.getLevel() == 1) {
-            int ladderX = state.getPlayerX();
-            int ladderY = state.getPlayerY();
-            int currentScore = state.getPlayer().getScore();
-            int currentHp = state.getPlayer().getHp();
-            int currentDifficulty = state.getDifficulty();
-            int nextLevelDifficulty = Math.min(currentDifficulty + 2, 10); // Increase difficulty, capped at 10
+    // Inside GameEngine.java (your provided code)
 
-            this.playerStartX = ladderX; // Next level starts where ladder was
+    public boolean advanceToNextLevel() {
+        // === Add Detailed Debugging Here ===
+        System.out.println("DEBUG GameEngine.advanceToNextLevel: Method called.");
+        if (state == null) {
+            System.out.println("DEBUG GameEngine.advanceToNextLevel: Current state is NULL. Cannot advance.");
+            return false;
+        }
+        System.out.println("DEBUG GameEngine.advanceToNextLevel: Current level reported by state: " + state.getLevel());
+        // === End Debugging ===
+
+        if (state.getLevel() == 1) {
+            int ladderX = state.getPlayerX(); // Player is on the ladder when this decision is made
+            int ladderY = state.getPlayerY();
+            System.out.println("DEBUG GameEngine.advanceToNextLevel: L1 Ladder was at (" + ladderX + "," + ladderY + ")");
+
+            // Ensure player object exists before trying to get score/HP
+            Player L1Player = state.getPlayer();
+            if (L1Player == null) {
+                System.err.println("CRITICAL ERROR in advanceToNextLevel: Player object in Level 1 state is null!");
+                return false; // Cannot proceed without player data
+            }
+            int currentScore = L1Player.getScore();
+            int currentHp = L1Player.getHp();
+            System.out.println("DEBUG GameEngine.advanceToNextLevel: Carrying over HP: " + currentHp + ", Score: " + currentScore);
+
+
+            int currentDifficulty = state.getDifficulty();
+            int nextLevelDifficulty = Math.min(currentDifficulty + 2, 10);
+            System.out.println("DEBUG GameEngine.advanceToNextLevel: Calculated L2 difficulty: " + nextLevelDifficulty);
+
+            this.playerStartX = ladderX; // L2 player starts where L1 ladder was
             this.playerStartY = ladderY;
 
-            this.state = new GameState(MAP_SIZE, nextLevelDifficulty); // Create new state for Level 2
-            this.state.setLevel(2);
-            Player player = new Player(playerStartX, playerStartY); // New player instance for new state
-            player.setScore(currentScore); // Carry over score
-            player.setHp(currentHp);       // Carry over HP
-            this.state.setPlayer(player);
+            // Create and assign the NEW GameState for Level 2
+            GameState newStateForL2 = new GameState(MAP_SIZE, nextLevelDifficulty);
+            newStateForL2.setLevel(2);
 
-            generateLevel(playerStartX, playerStartY); // Generate Level 2 map
-            state.getAndClearTurnMessages(); // Clear any residual messages
+            Player playerForL2 = new Player(this.playerStartX, this.playerStartY);
+            playerForL2.setScore(currentScore);
+            playerForL2.setHp(currentHp); // Set HP for the new player object
+            newStateForL2.setPlayer(playerForL2); // Assign this configured player to the new state
+
+            this.state = newStateForL2; // CRUCIAL: GameEngine now uses the new state for L2
+
+            System.out.println("DEBUG GameEngine.advanceToNextLevel: New GameState for L2 assigned. Player HP: " + this.state.getPlayer().getHp());
+
+            generateLevel(this.playerStartX, this.playerStartY); // Generate the map for Level 2 using the new state
+
+            // Clear any messages from L1 ladder interaction and add L2 advance message
+            this.state.getAndClearTurnMessages();
             String advanceMessage = "Advanced to Level 2! New Difficulty: " + this.state.getDifficulty();
-            state.addTurnMessage(advanceMessage);
-            System.out.println(advanceMessage); // Also print to console for text mode
+            this.state.addTurnMessage(advanceMessage);
+            System.out.println("CONSOLE MSG (GameEngine): " + advanceMessage); // For text mode & console trace
             return true;
         }
+        System.out.println("DEBUG GameEngine.advanceToNextLevel: Not advancing (current level is not 1).");
         return false;
     }
 
     private void generateLevel(int pStartX, int pStartY) {
-        Entity[][] map = state.getMap();
-        Player player = state.getPlayer();
-        state.setSteps(0); // Reset steps for the new level
+        // Ensure state is not null before proceeding
+        if (this.state == null) {
+            System.err.println("CRITICAL ERROR in generateLevel: GameState is null!");
+            return;
+        }
+        System.out.println("DEBUG GameEngine.generateLevel: Called for Level " + this.state.getLevel() +
+                " with playerStart (" + pStartX + "," + pStartY +
+                "), difficulty=" + this.state.getDifficulty());
 
-        // Clear map
+        // ... (rest of your generateLevel logic: clearing map, placing Entry for L1, placing items) ...
+        // This method MUST operate on `this.state` (which should be the L2 state when called from advanceToNextLevel)
+        Entity[][] map = this.state.getMap(); // Ensure using current engine's state map
+        Player player = this.state.getPlayer();
+        this.state.setSteps(0);
+
         for (int i = 0; i < MAP_SIZE; i++) {
             for (int j = 0; j < MAP_SIZE; j++) {
                 map[i][j] = null;
             }
         }
-        state.setPlayerPosition(pStartX, pStartY); // Set player's logical position in GameState
+        this.state.setPlayerPosition(pStartX, pStartY);
         if (player != null) {
-            player.setPosition(pStartX, pStartY); // Also update Player object's internal position
+            player.setPosition(pStartX, pStartY);
         }
 
-        if (state.getLevel() == 1) {
-            // pStartX and pStartY are the entry coordinates for Level 1 (e.g., bottom-left)
+        if (this.state.getLevel() == 1) {
             map[pStartX][pStartY] = new Entry();
-            System.out.println("DEBUG: Entry object placed at (" + pStartX + "," + pStartY + ") for Level 1."); // Optional debug
+            // System.out.println("DEBUG: Entry object placed at (" + pStartX + "," + pStartY + ") for Level 1.");
         }
 
-        // Place items (assignment doesn't require 'E' symbol if player just starts there)
         placeRandomItems(map, new Gold(), 5, pStartX, pStartY);
         placeRandomItems(map, new Trap(), 5, pStartX, pStartY);
         placeRandomItems(map, new MeleeMutant(), 3, pStartX, pStartY);
-        int rangedMutantCount = state.getDifficulty();
+        int rangedMutantCount = this.state.getDifficulty(); // Use current state's difficulty
         placeRandomItems(map, new RangedMutant(), rangedMutantCount, pStartX, pStartY);
         placeRandomItems(map, new HealthPotion(), 2, pStartX, pStartY);
-        placeRandomItems(map, new Ladder(), 1, pStartX, pStartY);
+        placeRandomItems(map, new Ladder(), 1, pStartX, pStartY); // Ensure new ladder is placed for L2
+        System.out.println("DEBUG GameEngine.generateLevel: Map generation for Level " + this.state.getLevel() + " complete.");
     }
+
+// No other changes are made to the rest of your GameEngine code for this specific issue.
+// The save/load, top scores, text game, and other methods remain as you provided.
 
     private void placeRandomItems(Entity[][] map, Entity itemType, int count, int playerAvoidX, int playerAvoidY) {
         Random rand = new Random();
@@ -222,7 +266,7 @@ public class GameEngine {
         return false;
     }
 
-    // --- Top Score Management ---
+    // Top Score Management
     @SuppressWarnings("unchecked")
     private void loadTopScores() {
         File scoresFile = new File(TOP_SCORES_FILENAME);
