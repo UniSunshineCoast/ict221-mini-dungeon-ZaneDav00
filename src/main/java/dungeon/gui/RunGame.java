@@ -1,6 +1,13 @@
+/**
+ * Main entry point for the MiniDungeon GUI application.
+ * Handles initial difficulty selection before launching the main game window.
+ * Author: Zane Davis
+ * Student ID: 1174117
+ * Due Date: 30th May 2025
+ */
 package dungeon.gui;
 
-import javafx.application.Platform;
+import javafx.application.Application;
 import javafx.scene.control.ChoiceDialog;
 import javafx.stage.Stage;
 
@@ -8,55 +15,62 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public class RunGame {
+public class RunGame extends Application {
 
-    private static int difficulty = 3;  // Default difficulty
+    private static int selectedDifficulty = 3;  // Default difficulty, matching assignment
 
+    /**
+     * Main method to launch the JavaFX application.
+     * @param args Command-line arguments (not used).
+     */
     public static void main(String[] args) {
-        Platform.startup(() -> {
-            List<Integer> choices = new ArrayList<>();
-            // Populate choices from 0 to 10
-            for (int i = 0; i <= 10; i++) {
-                choices.add(i);
-            }
+        launch(args);
+    }
 
-            // --- Debugging output ---
-            System.out.println("RunGame: Preparing ChoiceDialog.");
-            System.out.println("RunGame: Choices list size: " + choices.size());
-            System.out.println("RunGame: Choices list content: " + choices.toString());
-            // --- End Debugging output ---
+    /**
+     * The main entry point for this JavaFX application.
+     * Shows a difficulty selection dialog and then launches the GameGUI.
+     * @param ignoredPrimaryStage The primary stage provided by JavaFX (hidden in this setup).
+     */
+    @Override
+    public void start(Stage ignoredPrimaryStage) {
+        // Hide the initial stage provided by Application.start() as we are using dialogs/new stages.
+        if (ignoredPrimaryStage != null) {
+            ignoredPrimaryStage.hide();
+        }
 
-            if (choices.isEmpty()) {
-                System.err.println("RunGame: CRITICAL ERROR - Choices list is empty! Dialog will be blank.");
-                // You could show an error alert here and exit, or just proceed to see the blank dialog.
-            }
+        Optional<Integer> result = getInteger();
 
-            ChoiceDialog<Integer> dialog = new ChoiceDialog<>(difficulty, choices);
-            dialog.setTitle("Select Difficulty Level");
-            dialog.setHeaderText("Choose a game difficulty level (0-10).");
-            dialog.setContentText("Difficulty:");
+        result.ifPresent(choice -> selectedDifficulty = choice);
+        // If dialog is cancelled, selectedDifficulty remains its default value (3).
 
-            System.out.println("RunGame: ChoiceDialog created. Showing dialog...");
-            Optional<Integer> result = dialog.showAndWait();
-            System.out.println("RunGame: ChoiceDialog closed.");
+        // Pass the chosen (or default) difficulty to GameGUI
+        GameGUI.setDifficulty(selectedDifficulty);
 
-            if (result.isPresent()) {
-                difficulty = result.get();
-                System.out.println("RunGame: Difficulty selected: " + difficulty);
-            } else {
-                System.out.println("RunGame: No difficulty selected (dialog cancelled), using default: " + difficulty);
-            }
+        try {
+            // Create and show the main game stage
+            GameGUI mainGameGui = new GameGUI();
+            Stage gameStage = new Stage(); // GameGUI will use this new stage
+            mainGameGui.start(gameStage);
+        } catch (Exception e) {
+            System.err.println("RunGame: Error starting GameGUI - " + e.getMessage());
+            e.printStackTrace();
+            javafx.application.Platform.exit(); // Exit if the main game GUI fails to load
+        }
+    }
 
-            GameGUI.setDifficulty(difficulty);
-            try {
-                GameGUI mainGameGui = new GameGUI();
-                Stage gameStage = new Stage();
-                mainGameGui.start(gameStage);
-            } catch (Exception e) {
-                System.err.println("RunGame: Error starting GameGUI: " + e.getMessage());
-                e.printStackTrace();
-                Platform.exit();
-            }
-        });
+    private static Optional<Integer> getInteger() {
+        List<Integer> difficultyChoices = new ArrayList<>();
+        for (int i = 0; i <= 10; i++) { // Difficulty options 0-10
+            difficultyChoices.add(i);
+        }
+
+        ChoiceDialog<Integer> difficultyDialog = new ChoiceDialog<>(selectedDifficulty, difficultyChoices);
+        difficultyDialog.setTitle("Select Difficulty Level");
+        difficultyDialog.setHeaderText("Choose a game difficulty level (0-10).");
+        difficultyDialog.setContentText("Difficulty:");
+
+        Optional<Integer> result = difficultyDialog.showAndWait();
+        return result;
     }
 }

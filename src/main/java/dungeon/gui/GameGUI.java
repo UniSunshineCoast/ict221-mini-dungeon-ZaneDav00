@@ -1,3 +1,10 @@
+/**
+ * Sets up and displays the main JavaFX graphical user interface for the MiniDungeon game.
+ * It loads the FXML layout, initializes the controller, and shows the primary stage.
+ * Author: Zane Davis
+ * Student ID: 1174117
+ * Due Date: 30th May 2025
+ */
 package dungeon.gui;
 
 import javafx.application.Application;
@@ -6,36 +13,48 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
-// In GameGUI.java (or your main GUI setup class)
-// ... other imports and class definition ...
-
 public class GameGUI extends Application {
 
-    private static int difficulty = 3; // Default difficulty, should match assignment's default
+    private static int initialDifficulty = 3; // Default difficulty, can be updated before start()
 
-    public static void setDifficulty(int diff) { // This static method is fine for getting difficulty from RunGame
-        difficulty = diff;
+    /**
+     * Sets the initial difficulty for the game.
+     * This method is called by the launcher (e.g., RunGame) before the GUI starts.
+     * @param difficulty The selected difficulty level.
+     */
+    public static void setDifficulty(int difficulty) {
+        GameGUI.initialDifficulty = difficulty;
     }
 
+    /**
+     * The main entry point for this JavaFX application, called after launch().
+     * Loads the FXML, sets up the controller with the initial difficulty,
+     * and displays the primary game window.
+     * @param primaryStage The primary stage for this application, onto which
+     * the application scene can be set.
+     * @throws Exception if the FXML file cannot be loaded.
+     */
     @Override
     public void start(Stage primaryStage) throws Exception {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("game_gui.fxml"));
         Parent root = loader.load();
 
         Controller controller = loader.getController();
-        // Make sure to call the correct method name here:
-        controller.setInitialDifficulty(difficulty); // <<<< CHANGE THIS LINE
+        controller.setInitialDifficulty(initialDifficulty); // Pass the stored difficulty
 
-        primaryStage.setScene(new Scene(root, 800, 800)); // Or your preferred size
+        Scene scene = new Scene(root, 800, 800); // Preferred scene size
+        primaryStage.setScene(scene);
         primaryStage.setTitle("MiniDungeon Game");
         primaryStage.show();
 
-        // Request focus for keyboard input after the scene is shown
-        // If gridPane is the intended focus target in Controller:
-        // Platform.runLater(() -> controller.getGridPane().requestFocus());
-        // Or the scene itself, if key events are handled at scene level
-        // root.requestFocus();
+        // Note: For keyboard focus on the gridPane, you might use Platform.runLater
+        // in the Controller's initialize or setInitialDifficulty method
+        // to request focus once the scene is shown e.g. gridPane.requestFocus().
     }
 
-    // ... main method if you have one here to launch ...
+    // If you intend to launch this GameGUI directly (without RunGame),
+    // you would add a main method here:
+    // public static void main(String[] args) {
+    //     launch(args);
+    // }
 }
